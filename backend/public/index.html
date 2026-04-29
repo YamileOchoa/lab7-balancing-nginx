@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Lab7 - LOGIN + CRUD</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 30px auto;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #e2e8f0;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            margin-bottom: 20px;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 4px;
+        }
+
+        button:hover {
+            background: #2563eb;
+        }
+
+        button.danger {
+            background: #dc2626;
+        }
+
+        button.success {
+            background: #16a34a;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #334155;
+        }
+
+        th {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .topbar {
+            background: #0f172a;
+            border-bottom: 1px solid #334155;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        .backend-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #14532d;
+            color: #86efac;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        .backend-badge .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #4ade80;
+        }
+
+        .alert {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+
+        .alert-error {
+            background: #450a0a;
+            color: #fca5a5;
+        }
+
+        .alert-success {
+            background: #052e16;
+            color: #86efac;
+        }
+
+        #loginSection {
+            display: block;
+        }
+
+        #crudSection {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Lab7 — Balanceo de Carga</h1>
+
+        <!-- LOGIN -->
+        <div class="card" id="loginSection">
+            <h2>Login</h2>
+            <div id="loginAlert"></div>
+            <input type="email" id="email" placeholder="Email" value="admin@lab7.com" />
+            <input type="password" id="password" placeholder="Password" value="admin123" />
+            <button onclick="login()">Ingresar</button>
+        </div>
+
+        <!-- CRUD -->
+        <div id="crudSection">
+            <div class="topbar">
+                <span style="font-weight:bold;">Productos</span>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div class="backend-badge">
+                        <div class="dot"></div>
+                        <span id="backendInfo">-</span>
+                    </div>
+                    <button class="danger" onclick="logout()">Cerrar sesión</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Agregar / Editar Producto</h3>
+                <input type="hidden" id="productoId" />
+                <input type="text" id="nombre" placeholder="Nombre" />
+                <input type="text" id="descripcion" placeholder="Descripción" />
+                <input type="number" id="precio" placeholder="Precio" />
+                <button class="success" onclick="guardarProducto()">Guardar</button>
+                <button onclick="cancelarEdicion()">Cancelar</button>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-bottom:12px;">Lista de Productos</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Descripción</th>
+                            <th>Precio</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaProductos"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let token = localStorage.getItem('token') || '';
+        if (token) {
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('crudSection').style.display = 'block';
+            cargarProductos();
+        }
+
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            try {
+                const res = await fetch('/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                token = data.token;
+                localStorage.setItem('token', token);
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('crudSection').style.display = 'block';
+                document.getElementById('backendInfo').textContent = data.backend;
+                cargarProductos();
+            } catch (err) {
+                document.getElementById('loginAlert').innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            token = '';
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('crudSection').style.display = 'none';
+        }
+
+        async function cargarProductos() {
+            const res = await fetch('/productos', { headers: { 'Authorization': `Bearer ${token}` } });
+            const data = await res.json();
+            document.getElementById('backendInfo').textContent = data.backend;
+            const tbody = document.getElementById('tablaProductos');
+            tbody.innerHTML = '';
+            data.data.forEach(p => {
+                tbody.innerHTML += `
+            <tr>
+                <td>${p.id}</td>
+                <td>${p.nombre}</td>
+                <td>${p.descripcion}</td>
+                <td>S/. ${p.precio}</td>
+                <td>
+                    <button onclick="editarProducto(${p.id}, '${p.nombre}', '${p.descripcion}', ${p.precio})">Editar</button>
+                    <button class="danger" onclick="eliminarProducto(${p.id})">Eliminar</button>
+                </td>
+            </tr>`;
+            });
+        }
+
+        async function guardarProducto() {
+            const id = document.getElementById('productoId').value;
+            const body = {
+                nombre: document.getElementById('nombre').value,
+                descripcion: document.getElementById('descripcion').value,
+                precio: document.getElementById('precio').value
+            };
+            const url = id ? `/productos/${id}` : '/productos';
+            const method = id ? 'PUT' : 'POST';
+            await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(body)
+            });
+            cancelarEdicion();
+            cargarProductos();
+        }
+
+        function editarProducto(id, nombre, descripcion, precio) {
+            document.getElementById('productoId').value = id;
+            document.getElementById('nombre').value = nombre;
+            document.getElementById('descripcion').value = descripcion;
+            document.getElementById('precio').value = precio;
+        }
+
+        function cancelarEdicion() {
+            ['productoId', 'nombre', 'descripcion', 'precio'].forEach(id => document.getElementById(id).value = '');
+        }
+
+        async function eliminarProducto(id) {
+            if (!confirm('¿Eliminar producto?')) return;
+            await fetch(`/productos/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            cargarProductos();
+        }
+    </script>
+</body>
+
+</html>
