@@ -14,8 +14,8 @@ Aplicación web con **LOGIN + CRUD de productos** y balanceo de carga con **Ngin
 ## Clonar el repositorio
 
 ```bash
-git clone <URL_DEL_REPOSITORIO>
-cd LAB7
+git clone <https://github.com/YamileOchoa/lab7-balancing-nginx.git>
+cd lab7-balancing-nginx
 ```
 
 ---
@@ -23,7 +23,7 @@ cd LAB7
 ## Estructura del proyecto
 
 ```
-LAB7/
+lab7-balancing-nginx/
 ├── backend/
 │   ├── node_modules/
 │   ├── public/
